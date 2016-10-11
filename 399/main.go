@@ -16,51 +16,54 @@ func calcEquation(equations [][]string, values []float64, queries [][]string) []
 	}
 
 	// init
-	vals := map[string]float64{equations[0][1]: 1.0}
+	vals := map[string]map[string]float64{}
 
-	// scan 2 times and got all valus
+	// store
 	for i := 0; i < len(equations); i++ {
-		a, existA := vals[equations[i][0]]
-		b, existB := vals[equations[i][1]]
-		if (existA && existB) || (!existA && !existB) {
-			continue
-		}
-		if existA {
-			vals[equations[i][1]] = a / values[i]
+		var (
+			a string = equations[i][0]
+			b string = equations[i][1]
+		)
+		// set a
+		if _, existA := vals[a]; existA {
+			vals[a][b] = values[i]
 		} else {
-			vals[equations[i][0]] = b * values[i]
+			vals[a] = map[string]float64{b: values[i]}
 		}
-	}
-	for i := 0; i < len(equations); i++ {
-		a, existA := vals[equations[i][0]]
-		b, existB := vals[equations[i][1]]
-		if existA && existB {
-			continue
-		}
-		if existA {
-			vals[equations[i][1]] = a / values[i]
-		} else if existB {
-			vals[equations[i][0]] = b * values[i]
+		// set b
+		if _, existB := vals[b]; existB {
+			vals[b][a] = 1.0 / values[i]
 		} else {
-			// new numbers have no relations with numbers found in time1
-			vals[equations[i][1]] = 1.0
-			vals[equations[i][0]] = values[i] * 1.0
+			vals[b] = map[string]float64{a: 1.0 / values[i]}
 		}
 	}
 
 	// calc
 	for i := 0; i < len(queries); i++ {
-		a, existA := vals[queries[i][0]]
-		b, existB := vals[queries[i][1]]
-		if existA && existB {
-			res[i] = a / b
-		} else {
-			// not existed
-			res[i] = -1.0
-		}
+		res[i], _ = dst(queries[i][0], queries[i][1], vals, map[string]bool{})
 	}
 
 	return res
+}
+
+func dst(a, b string, src map[string]map[string]float64, hasPassedBy map[string]bool) (float64, bool) {
+	_, existA := src[a]
+	_, existB := src[b]
+	if existA && existB {
+		// recursive
+		if d, existDirected := src[a][b]; existDirected {
+			return d, true
+		}
+		for k, v := range src[a] {
+			if !hasPassedBy[k] {
+				hasPassedBy[k] = true
+				if d, yes := dst(k, b, src, hasPassedBy); yes {
+					return d * v, true
+				}
+			}
+		}
+	}
+	return -1.0, false
 }
 
 func formatFloat64Slice(input []float64) string {
@@ -78,9 +81,21 @@ func main() {
 
 	// test
 	var (
-		equations = [][]string{[]string{"a", "b"}, []string{"b", "c"}}
-		values    = []float64{2.0, 3.0}
-		queries   = [][]string{[]string{"a", "c"}, []string{"b", "a"}, []string{"a", "e"}, []string{"a", "a"}, []string{"x", "x"}}
+		equations = [][]string{
+			[]string{"x1", "x2"},
+			[]string{"x2", "x3"},
+			[]string{"x3", "x4"},
+			[]string{"x4", "x5"},
+		}
+		values  = []float64{3.0, 4.0, 5.0, 6.0}
+		queries = [][]string{
+			[]string{"x1", "x5"},
+			[]string{"x5", "x2"},
+			[]string{"x2", "x4"},
+			[]string{"x2", "x2"},
+			[]string{"x2", "x9"},
+			[]string{"x9", "x9"},
+		}
 	)
 	fmt.Printf("equations: %v\nvalues: %v\nqueries: %v\ncalcEquation got %v\n", equations, formatFloat64Slice(values), queries, formatFloat64Slice(calcEquation(equations, values, queries)))
 }
