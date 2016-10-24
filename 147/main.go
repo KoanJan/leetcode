@@ -49,15 +49,12 @@ func insertionSortList(head *ListNode) *ListNode {
 	)
 	for i != nil {
 		// head
-		if i.Val > res.Val {
+		if i.Val < res.Val {
 			res = &ListNode{Val: i.Val, Next: res}
-			fmt.Printf("die in head\n")
 		} else {
 			// body
 			for cur.Next != nil {
-				fmt.Printf("die in body\n")
-				fmt.Printf("cur: %v\n", cur)
-				if i.Val > cur.Next.Val {
+				if i.Val < cur.Next.Val {
 					cur.Next = &ListNode{Val: i.Val, Next: cur.Next}
 					break
 				}
@@ -65,10 +62,10 @@ func insertionSortList(head *ListNode) *ListNode {
 			}
 			// tail
 			if cur.Next == nil {
-				fmt.Printf("die in tail\n")
 				cur.Next = &ListNode{Val: i.Val}
 			}
 		}
+		i = i.Next
 		cur = res
 	}
 
